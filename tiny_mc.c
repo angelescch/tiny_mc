@@ -7,6 +7,7 @@
 
 #define _XOPEN_SOURCE 500 // M_PI
 
+#include "xoroshiro128p.h"
 #include "params.h"
 #include "photon.h"
 #include "wtime.h"
@@ -41,6 +42,8 @@ int main(void)
 
     // configure RNG
     srand(SEED);
+    xoroshiro128p_seed(SEED);
+
     // start timer
     double start = wtime();
     // simulation

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include "params.h"
+#include "xoroshiro128p.h"
 
 void photon(float* heats, float* heats_squared)
 {
@@ -18,7 +19,7 @@ void photon(float* heats, float* heats_squared)
     float weight = 1.0f;
 
     for (;;) {
-        float t = -logf(rand() / (float)RAND_MAX); /* move */
+        float t = -logf(xoroshiro128p_next()); /* move */
         x += t * u;
         y += t * v;
         z += t * w;
@@ -34,8 +35,8 @@ void photon(float* heats, float* heats_squared)
         /* New direction, rejection method */
         float xi1, xi2;
         do {
-            xi1 = 2.0f * rand() / (float)RAND_MAX - 1.0f;
-            xi2 = 2.0f * rand() / (float)RAND_MAX - 1.0f;
+            xi1 = 2.0f * xoroshiro128p_next() - 1.0f;
+            xi2 = 2.0f * xoroshiro128p_next() - 1.0f;
             t = xi1 * xi1 + xi2 * xi2;
         } while (1.0f < t);
         u = 2.0f * t - 1.0f;
@@ -43,7 +44,7 @@ void photon(float* heats, float* heats_squared)
         w = xi2 * sqrtf((1.0f - u * u) / t);
 
         if (weight < 0.001f) { /* roulette */
-            if (rand() / (float)RAND_MAX > 0.1f)
+            if (xoroshiro128p_next() > 0.1f)
                 break;
             weight /= 0.1f;
         }
