@@ -22,11 +22,9 @@ char t2[] = "1 W Point Source Heating in Infinite Isotropic Scattering Medium";
 char t3[] = "CPU version, adapted for PEAGPGPU by Gustavo Castellano"
             " and Nicolas Wolovick";
 
-
 // global state, heat and heat square in each shell
 static float heat[SHELLS];
 static float heat2[SHELLS];
-
 
 /***
  * Main matter
@@ -41,7 +39,6 @@ int main(void)
     printf("# Photons    = %8d\n#\n", PHOTONS);
 
     // configure RNG
-    srand(SEED);
     xoroshiro128p_seed(SEED);
 
     // start timer

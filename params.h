@@ -7,7 +7,7 @@
 #endif
 
 #ifndef PHOTONS
-#define PHOTONS 32768 // 32K photons
+#define PHOTONS (1<<28) //32768 // 32K photons
 #endif
 
 #ifndef MU_A

@@ -1,6 +1,8 @@
 #include "xoroshiro128p.h"
 #include <stdint.h>
 
+#define UINT32_MAX_INV (1.0f / (float)UINT32_MAX)
+
 /* This is xoshiro128+ 1.0, our best and fastest 32-bit generator for 32-bit
    floating-point numbers. We suggest to use its upper bits for
    floating-point generation, as it is slightly faster than xoshiro128**.
@@ -24,24 +26,24 @@ void xoroshiro128p_seed(uint32_t seed) {
 }
 
 static inline uint32_t rotl(const uint32_t x, int k) {
-	return (x << k) | (x >> (32 - k));
+    return (x << k) | (x >> (32 - k));
 }
 
 float xoroshiro128p_next(void) {
-	const uint32_t res = s[0] + s[3];
+    const uint32_t res = s[0] + s[3];
 
-	const uint32_t t = s[1] << 9;
+    const uint32_t t = s[1] << 9;
 
-	s[2] ^= s[0];
-	s[3] ^= s[1];
-	s[1] ^= s[2];
-	s[0] ^= s[3];
+    s[2] ^= s[0];
+    s[3] ^= s[1];
+    s[1] ^= s[2];
+    s[0] ^= s[3];
 
-	s[2] ^= t;
+    s[2] ^= t;
 
-	s[3] = rotl(s[3], 11);
+    s[3] = rotl(s[3], 11);
 
-    float result = (float)res / (float)UINT32_MAX;
+    float result = (float)res * UINT32_MAX_INV;
 
-	return result;
+    return result;
 }
