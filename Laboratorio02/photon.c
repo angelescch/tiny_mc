@@ -11,6 +11,7 @@
 
 inline float random(){ return -logf(xoroshiro128p_next()); }
 inline float random2(){ return 2.0f * xoroshiro128p_next() - 1.0f; }
+inline float random3(){ return xoroshiro128p_next(); }
 
 
 /* Ahora se realizara el calculo de a 8 */
@@ -39,7 +40,8 @@ void photon(float* heats, float* heats_squared)
         z = _mm256_add_ps(z, _mm256_mul_ps(t, w));
 
         __m256i shell  = _mm256_cvtps_epi32(_mm256_mul_ps(_mm256_sqrt_ps(_mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(x, x), _mm256_mul_ps(y, y)), _mm256_mul_ps(z, z))), shells_per_mfp)); /* absorb */
-        __m256i mask_i = _mm256_and_si256(_mm256_cmpgt_epi32(shell, _mm256_set1_epi32(SHELLS - 1)), _mm256_cmpgt_epi32(_mm256_set1_epi32(0),shell));
+        __m256i mask_i = _mm256_or_si256(_mm256_cmpgt_epi32(shell, _mm256_set1_epi32(SHELLS - 1)),
+                                          _mm256_cmpgt_epi32(_mm256_set1_epi32(0),shell));
         // __m256i mask_i = _mm256_cmpgt_epi32(shell, _mm256_set1_epi32(SHELLS - 1));
 
 
@@ -56,9 +58,9 @@ void photon(float* heats, float* heats_squared)
         
         
         for (int i = 0; i < 8; i++){
-            if (shell_tmp[i] > SHELLS - 1) {
-                shell_tmp[i] = SHELLS - 1;
-            }
+            // if (shell_tmp[i] > SHELLS - 1) {
+            //     shell_tmp[i] = SHELLS - 1;
+            // }
             heats[shell_tmp[i]] += res_tmp[i];
         }
             
@@ -94,7 +96,7 @@ void photon(float* heats, float* heats_squared)
 
         mask = _mm256_cmp_ps(weight, _mm256_set1_ps(0.001f), _CMP_LT_OQ);
         mask = _mm256_and_ps(mask, live);
-        xi1  = _mm256_set_ps(random(),random(),random(),random(),random(),random(),random(),random());
+        xi1  = _mm256_set_ps(random3(),random3(),random3(),random3(),random3(),random3(),random3(),random3());
         xi1  = _mm256_cmp_ps(xi1, _mm256_set1_ps(0.1f), _CMP_LE_OQ); 
         live = _mm256_and_ps(live, xi1);
         weight = _mm256_div_ps(weight, _mm256_set1_ps(0.1f));
