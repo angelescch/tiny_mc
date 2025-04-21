@@ -65,35 +65,24 @@ void photon(float* heats, float* heats_squared)
 
         __m256i mask_i = _mm256_or_si256(_mm256_cmpgt_epi32(shell, _mm256_set1_epi32(SHELLS - 1)),
                                           _mm256_cmpgt_epi32(_mm256_set1_epi32(0),shell));
-        // __m256i mask_i = _mm256_cmpgt_epi32(shell, _mm256_set1_epi32(SHELLS - 1));
-
-        __m256i shell  = _mm256_cvttps_epi32(sq_s); /* absorb */
 
         // shell /\ not( mask_i) + (SHELLS - 1) /\ mask_i
         shell = _mm256_add_epi32(_mm256_andnot_si256(mask_i, shell), _mm256_and_si256(mask_i, _mm256_set1_epi32(SHELLS - 1)));
 
-        // _mm256_storeu_si256((__m256i*)debug_mask_i, mask_i);
-
-        // for (int i = 0; i < 8; i++){
-        //     printf("mask_i %d = %d\n", i, debug_mask_i[i]);
-        // }
 
 
         __m256 res = _mm256_mul_ps(_mm256_sub_ps(_mm256_set1_ps(1.0f), albedo), weight);
 
         /* --------------------------------- */
+        unsigned int shell_tmp[8];
         float res_tmp[8];
 
         _mm256_storeu_si256((__m256i*)shell_tmp, shell);
         _mm256_storeu_ps(res_tmp, res);
         
         
-        for (int i = 0; i < 8; i++){
-            // if (shell_tmp[i] > SHELLS - 1) {
-            //     shell_tmp[i] = SHELLS - 1;
-            // }
+        for (int i = 0; i < 8; i++)
             heats[shell_tmp[i]] += res_tmp[i];
-        }
             
             
         res = _mm256_mul_ps(res,res);
@@ -112,31 +101,18 @@ void photon(float* heats, float* heats_squared)
         t = _mm256_add_ps(_mm256_mul_ps(xi1, xi1), _mm256_mul_ps(xi2, xi2));
         __m256 mask = _mm256_cmp_ps(t, _mm256_set1_ps(1.0f), _CMP_GT_OQ);
         while (_mm256_movemask_ps(mask) != 0) {
-            __m256 new_xi1 = _mm256_set_ps(random2(), random2(), random2(), random2(), random2(), random2(), random2(), random2());
-            __m256 new_xi2 = _mm256_set_ps(random2(), random2(), random2(), random2(), random2(), random2(), random2(), random2());
-            xi1 = _mm256_blendv_ps(xi1, new_xi1, mask);
-            xi2 = _mm256_blendv_ps(xi2, new_xi2, mask);
-            __m256 new_xi1 = _mm256_set_ps(random2(), random2(), random2(), random2(), random2(), random2(), random2(), random2());
-            __m256 new_xi2 = _mm256_set_ps(random2(), random2(), random2(), random2(), random2(), random2(), random2(), random2());
-            xi1 = _mm256_blendv_ps(xi1, new_xi1, mask);
-            xi2 = _mm256_blendv_ps(xi2, new_xi2, mask);
+            xi1 = _mm256_set_ps(random2(), random2(), random2(), random2(), random2(), random2(), random2(), random2());
+            xi2 = _mm256_set_ps(random2(), random2(), random2(), random2(), random2(), random2(), random2(), random2());
+            xi1 = _mm256_and_ps(xi1, mask);
+            xi2 = _mm256_and_ps(xi2, mask);
             t = _mm256_add_ps(_mm256_mul_ps(xi1, xi1), _mm256_mul_ps(xi2, xi2));
             mask = _mm256_cmp_ps(t, _mm256_set1_ps(1.0f), _CMP_GT_OQ);
         }
-
-
         u = _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), t), _mm256_set1_ps(1.0f));
-        __m256 sqrt_val = _mm256_sqrt_ps(_mm256_sub_ps(_mm256_set1_ps(1.0f), t));
-        v = _mm256_mul_ps(_mm256_mul_ps(xi1, _mm256_set1_ps(2.0f)), sqrt_val);
-        w = _mm256_mul_ps(_mm256_mul_ps(xi2, _mm256_set1_ps(2.0f)), sqrt_val);
+        v = _mm256_mul_ps(xi1, _mm256_sqrt_ps(_mm256_div_ps(_mm256_sub_ps(_mm256_set1_ps(1.0f), _mm256_mul_ps(u, u)), t)));
+        w = _mm256_mul_ps(xi2, _mm256_sqrt_ps(_mm256_div_ps(_mm256_sub_ps(_mm256_set1_ps(1.0f), _mm256_mul_ps(u, u)), t)));
 
-        mask = _mm256_cmp_ps(weight, _mm256_set1_ps(0.001f), _CMP_LT_OQ);
-        mask = _mm256_and_ps(mask, live);
-        xi1  = _mm256_set_ps(xoroshiro128p_next(),xoroshiro128p_next(),xoroshiro128p_next(),xoroshiro128p_next(),xoroshiro128p_next(),xoroshiro128p_next(),xoroshiro128p_next(),xoroshiro128p_next());
-        xi1  = _mm256_set_ps(xoroshiro128p_next(),xoroshiro128p_next(),xoroshiro128p_next(),xoroshiro128p_next(),xoroshiro128p_next(),xoroshiro128p_next(),xoroshiro128p_next(),xoroshiro128p_next());
-        xi1  = _mm256_cmp_ps(xi1, _mm256_set1_ps(0.1f), _CMP_LE_OQ); 
-        live = _mm256_and_ps(live, xi1);
-        weight = _mm256_div_ps(weight, _mm256_set1_ps(0.1f));
+
         
         /* Si estoy en el primer if */
         // if (weight < 0.001f)
