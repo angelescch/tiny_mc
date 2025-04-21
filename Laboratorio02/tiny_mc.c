@@ -45,7 +45,7 @@ int main(void)
     double start = wtime();
 
     // simulation
-    for (unsigned int i = 0; i < PHOTONS; i+=8) {
+    for (unsigned int i = 0; i < PHOTONS/8; ++i) {
         photon(heat, heat2);
     }
 
