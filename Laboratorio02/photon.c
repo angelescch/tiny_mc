@@ -39,7 +39,31 @@ void photon(float* heats, float* heats_squared)
         y = _mm256_add_ps(y, _mm256_mul_ps(t, v));
         z = _mm256_add_ps(z, _mm256_mul_ps(t, w));
 
+
+        // unsigned int debug_shell[8];
+        // unsigned int debug_mask_i[8];
+        // float debug_live[8];
+        // float debug_weight[8];
+        // _mm256_store_ps(debug_weight, weight);
+        // _mm256_store_ps(debug_live, live);
+
+
+
+        // for (int i = 0; i < 8; i++){
+        //     printf("weight %d = %f\n", i, debug_weight[i]);
+        //     printf("live   %d = %f\n", i, debug_live[i]);
+        // }
+
         __m256i shell  = _mm256_cvtps_epi32(_mm256_mul_ps(_mm256_sqrt_ps(_mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(x, x), _mm256_mul_ps(y, y)), _mm256_mul_ps(z, z))), shells_per_mfp)); /* absorb */
+
+        // _mm256_storeu_si256((__m256i*)debug_shell, shell);
+
+
+
+        // for (int i = 0; i < 8; i++){
+        //     printf("shell[%d] = %d\n", i, debug_shell[i]);
+        // }
+
         __m256i mask_i = _mm256_or_si256(_mm256_cmpgt_epi32(shell, _mm256_set1_epi32(SHELLS - 1)),
                                           _mm256_cmpgt_epi32(_mm256_set1_epi32(0),shell));
         // __m256i mask_i = _mm256_cmpgt_epi32(shell, _mm256_set1_epi32(SHELLS - 1));
@@ -47,6 +71,13 @@ void photon(float* heats, float* heats_squared)
 
         // shell /\ not( mask_i) + (SHELLS - 1) /\ mask_i
         shell = _mm256_add_epi32(_mm256_andnot_si256(mask_i, shell), _mm256_and_si256(mask_i, _mm256_set1_epi32(SHELLS - 1)));
+
+        // _mm256_storeu_si256((__m256i*)debug_mask_i, mask_i);
+
+        // for (int i = 0; i < 8; i++){
+        //     printf("mask_i %d = %d\n", i, debug_mask_i[i]);
+        // }
+
 
         __m256 res = _mm256_mul_ps(_mm256_sub_ps(_mm256_set1_ps(1.0f), albedo), weight);
 
@@ -94,12 +125,22 @@ void photon(float* heats, float* heats_squared)
         w = _mm256_mul_ps(xi2, _mm256_sqrt_ps(_mm256_div_ps(_mm256_sub_ps(_mm256_set1_ps(1.0f), _mm256_mul_ps(u, u)), t)));
 
 
-        mask = _mm256_cmp_ps(weight, _mm256_set1_ps(0.001f), _CMP_LT_OQ);
-        mask = _mm256_and_ps(mask, live);
-        xi1  = _mm256_set_ps(random3(),random3(),random3(),random3(),random3(),random3(),random3(),random3());
-        xi1  = _mm256_cmp_ps(xi1, _mm256_set1_ps(0.1f), _CMP_LE_OQ); 
-        live = _mm256_and_ps(live, xi1);
-        weight = _mm256_div_ps(weight, _mm256_set1_ps(0.1f));
+        
+        /* Si estoy en el primer if */
+        // if (weight < 0.001f)
+        mask = _mm256_cmp_ps(weight, _mm256_set1_ps(0.001f), _CMP_LT_OQ); // Condicion
+        __m256 weight_temp = _mm256_div_ps(weight, _mm256_set1_ps(0.1f)); 
+        weight = _mm256_blendv_ps(weight, weight_temp, mask); // Todos los que estan 
 
+        
+        /* Estoy en el if anidado */
+        // if (xoroshiro128p_next() > 0.1f)
+        // Uso (>=) para ahorrarme la negacion
+        __m256 if_rand  = _mm256_set_ps(random3(),random3(),random3(),random3(),random3(),random3(),random3(),random3());
+        if_rand  = _mm256_cmp_ps(if_rand, _mm256_set1_ps(0.1f), _CMP_LE_OQ); 
+
+        // Pasan a estar muertos (FALSE) los que sacaron un random inferior a 0.1f
+        // Esto se actualiza solo para aquellos que estan dentro de la mascara
+        live = _mm256_blendv_ps(live,_mm256_and_ps(live, if_rand) ,mask);
     }
 }
