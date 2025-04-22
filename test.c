@@ -1,4 +1,6 @@
-#include "xoroshiro128p.h"
+#include <stdio.h>
+#include <stdint.h>
+#include <immintrin.h>
 
 #define UINT32_MAX_INV (1.0f / (float)UINT32_MAX)
 
@@ -41,6 +43,7 @@ __m256 next_random() {
     s3 = rotl32_avx(s3, 11);
 
     unsigned int* res = (unsigned int*)&result;
+
     __m256 r = _mm256_setr_ps(
         res[0] * UINT32_MAX_INV, 
         res[1] * UINT32_MAX_INV, 
@@ -49,8 +52,26 @@ __m256 next_random() {
         res[4] * UINT32_MAX_INV,
         res[5] * UINT32_MAX_INV,
         res[6] * UINT32_MAX_INV,
-        res[7] * UINT32_MAX_INV
-    );
+        res[7] * UINT32_MAX_INV);
 
     return r;
+}
+int main() {
+    FILE *f = fopen("resultados.csv", "w");
+    if (f == NULL) {
+        printf("error al abrir el archivo\n");
+        return 1;
+    }
+    init_random(19);
+
+    for (int i = 0; i < 1e6; i++) { // 1e6 * 8 valores = 8 millones
+        __m256 re = next_random();
+        for (int j = 0; j < 8; j++) {
+            float r = ((float*)&re)[j];
+            fprintf(f, "%f\n", r);
+        }
+    }
+
+    fclose(f);
+    return 0;
 }

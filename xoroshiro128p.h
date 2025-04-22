@@ -1,8 +1,12 @@
 #pragma once
 
+#ifndef XOROSHIRO128P_H
+#define XOROSHIRO128P_H
+
+#include <immintrin.h>
 #include <stdint.h>
 
-#define XOSHIRO_MAX UINT32_MAX
+void init_random(uint32_t seed);
+__m256 next_random();
 
-void xoroshiro128p_seed(uint32_t seed);
-float xoroshiro128p_next(void);
+#endif

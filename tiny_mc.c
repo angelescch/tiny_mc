@@ -15,7 +15,6 @@
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 char t1[] = "Tiny Monte Carlo by Scott Prahl (http://omlc.ogi.edu)";
 char t2[] = "1 W Point Source Heating in Infinite Isotropic Scattering Medium";
@@ -39,14 +38,16 @@ int main(void)
     printf("# Photons    = %8d\n#\n", PHOTONS);
 
     // configure RNG
-    xoroshiro128p_seed(SEED);
+    init_random(5445743);
 
     // start timer
     double start = wtime();
+
     // simulation
-    for (unsigned int i = 0; i < PHOTONS; ++i) {
+    //for (unsigned int i = 0; i < PHOTONS/8; ++i) {
         photon(heat, heat2);
-    }
+    //}
+
     // stop timer
     double end = wtime();
     assert(start <= end);

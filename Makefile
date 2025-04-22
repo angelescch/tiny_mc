@@ -2,14 +2,14 @@
 CC = gcc
 
 # Flags
-CFLAGS = -std=c11 -Wall -Wextra
-TINY_LDFLAGS = -lm
-CG_LDFLAGS = -lm -lglfw -lGL -lGLEW
+CFLAGS = -g -std=c11 -Wall -Wextra -O1 -march=native -funroll-all-loops -ffast-math -ftree-vectorize -fopenmp
+TINY_LDFLAGS = -lm -mavx2
+CG_LDFLAGS = -lm -lglfw -lGL -lGLEW -mavx2
 
 TARGETS = headless head
 
 # Files
-C_SOURCES = wtime.c xoroshiro128p.c photon.c
+C_SOURCES = wtime.c log_256.c xoroshiro128p.c photon.c 
 C_OBJS = $(patsubst %.c, %.o, $(C_SOURCES))
 
 headless: tiny_mc.o $(C_OBJS)
