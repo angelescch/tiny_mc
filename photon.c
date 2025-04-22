@@ -2,14 +2,11 @@
 #include "xoroshiro128p.h"
 #include "log_256.h"
 
-#define TRUE -1
-
 /* Ahora se realizara el calculo de a 8 */
 void photon(float* heats, float* heats_squared)
 {
     __m256 albedo = _mm256_set1_ps(MU_S / (MU_S + MU_A));
     __m256 shells_per_mfp = _mm256_set1_ps(1e4 / MICRONS_PER_SHELL / (MU_A + MU_S));
-    __m256 live = _mm256_set1_ps(TRUE);
 
     /* launch */
     __m256 x = _mm256_setzero_ps();
@@ -39,13 +36,11 @@ void photon(float* heats, float* heats_squared)
         __m256 res2 = _mm256_mul_ps(res,res);
 
         for (int i = 0; i < 8; ++i) {
-            if (((float*)&live)[i]) {
-                int idx = ((int*)&shell)[i];
-                float r = ((float*)&res)[i];
-                float r2 = ((float*)&res2)[i];
-                heats_squared[idx] += r2;
-                heats[idx] += r;
-            }
+            int idx = ((int*)&shell)[i];
+            float r = ((float*)&res)[i];
+            float r2 = ((float*)&res2)[i];
+            heats_squared[idx] += r2;
+            heats[idx] += r;
         }
 
         weight = _mm256_mul_ps(weight, albedo);
