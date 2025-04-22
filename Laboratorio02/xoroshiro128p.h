@@ -6,4 +6,3 @@
 
 void xoroshiro128p_seed(uint32_t seed);
 float xoroshiro128p_next(void);
-float xoroshiro128plog_next(void);

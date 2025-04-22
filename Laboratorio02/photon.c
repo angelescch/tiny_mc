@@ -3,15 +3,60 @@
 #include <stdio.h>
 
 #include "params.h" 
-#include "xoroshiro128p.h"
+#include "xoroshiro128pVec.h"
 
 #include <immintrin.h>
 
 #define TRUE -1
 
-inline float random(){ return -logf(xoroshiro128p_next()); }
-inline float random2(){ return 2.0f * xoroshiro128p_next() - 1.0f; }
-inline float random3(){ return xoroshiro128p_next(); }
+#define LOG2F 0.69314718056f // ln(2)
+
+// Aprox polinomial para log(m), con m ∈ [1, 2)
+static inline __m256 log_approx_mantissa(__m256 m) {
+    // r = m - 1
+    __m256 r = _mm256_sub_ps(m, _mm256_set1_ps(1.0f));
+
+    // Usamos Taylor: log(1 + r) ≈ r - r^2/2 + r^3/3 - r^4/4
+    __m256 r2 = _mm256_mul_ps(r, r);
+    __m256 r3 = _mm256_mul_ps(r2, r);
+    __m256 r4 = _mm256_mul_ps(r3, r);
+
+    __m256 term1 = r;
+    __m256 term2 = _mm256_mul_ps(r2, _mm256_set1_ps(-0.5f));
+    __m256 term3 = _mm256_mul_ps(r3, _mm256_set1_ps(1.0f / 3.0f));
+    __m256 term4 = _mm256_mul_ps(r4, _mm256_set1_ps(-0.25f));
+
+    return _mm256_add_ps(_mm256_add_ps(term1, term2), _mm256_add_ps(term3, term4));
+}
+
+// log(x) para x ∈ (0, 1)
+__m256 log_approx_avx(__m256 x) {
+    // reinterpretar x como int32 para extraer el exponente y mantisa
+    __m256i xi = _mm256_castps_si256(x);
+
+    // Exponente en bits 23-30: ((xi >> 23) & 0xFF) - 127
+    __m256i exp_bits = _mm256_srli_epi32(xi, 23);
+    exp_bits = _mm256_and_si256(exp_bits, _mm256_set1_epi32(0xFF));
+    __m256i exp = _mm256_sub_epi32(exp_bits, _mm256_set1_epi32(127));
+
+    // Mantisa: poner el exponente en 127 (o sea, forzar a 1.m)
+    __m256i mant_bits = _mm256_or_si256(_mm256_and_si256(xi, _mm256_set1_epi32(0x007FFFFF)), _mm256_set1_epi32(0x3F800000));
+    __m256 m = _mm256_castsi256_ps(mant_bits);
+
+    // log(x) = log(m) + e * log(2)
+    __m256 logm = log_approx_mantissa(m);
+    __m256 expf = _mm256_cvtepi32_ps(exp);
+
+    return _mm256_add_ps(logm, _mm256_mul_ps(expf, _mm256_set1_ps(LOG2F)));
+}
+
+// inline float random(){ return -logf(xoroshiro128p_next()); }
+inline __m256 random(){ return _mm256_mul_ps(log_approx_avx(xoroshiro128pVec_next()), _mm256_set1_ps(-1.0f)); }
+
+// inline float random2(){ return 2.0f * xoroshiro128p_next() - 1.0f; }
+inline __m256 random2(){ return _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), xoroshiro128pVec_next()), _mm256_set1_ps(1.0f)); }
+
+// inline float random3(){ return xoroshiro128p_next(); }
 
 
 /* Ahora se realizara el calculo de a 8 */
@@ -32,7 +77,9 @@ void photon(float* heats, float* heats_squared)
     __m256 weight = _mm256_set1_ps(1.0f);
 
     for (;_mm256_movemask_ps(live) != 0;) {
-        __m256 t = _mm256_set_ps(random(),random(),random(),random(),random(),random(),random(),random()); /* move */
+        // __m256 t = _mm256_set_ps(random(),random(),random(),random(),random(),random(),random(),random()); /* move */
+
+        __m256 t = random();
 
         x = _mm256_add_ps(x, _mm256_mul_ps(t, u));
         y = _mm256_add_ps(y, _mm256_mul_ps(t, v));
@@ -96,13 +143,13 @@ void photon(float* heats, float* heats_squared)
         // weight *= albedo;
         weight = _mm256_mul_ps(weight, albedo);
 
-        __m256 xi1 = _mm256_set_ps(random2(), random2(), random2(), random2(), random2(), random2(), random2(), random2());
-        __m256 xi2 = _mm256_set_ps(random2(), random2(), random2(), random2(), random2(), random2(), random2(), random2());
+        __m256 xi1 = random2();
+        __m256 xi2 = random2();
         t = _mm256_add_ps(_mm256_mul_ps(xi1, xi1), _mm256_mul_ps(xi2, xi2));
         __m256 mask = _mm256_cmp_ps(t, _mm256_set1_ps(1.0f), _CMP_GT_OQ);
         while (_mm256_movemask_ps(mask) != 0) {
-            xi1 = _mm256_set_ps(random2(), random2(), random2(), random2(), random2(), random2(), random2(), random2());
-            xi2 = _mm256_set_ps(random2(), random2(), random2(), random2(), random2(), random2(), random2(), random2());
+            xi1 =random2();
+            xi2 =random2();
             xi1 = _mm256_and_ps(xi1, mask);
             xi2 = _mm256_and_ps(xi2, mask);
             t = _mm256_add_ps(_mm256_mul_ps(xi1, xi1), _mm256_mul_ps(xi2, xi2));
@@ -124,7 +171,7 @@ void photon(float* heats, float* heats_squared)
         /* Estoy en el if anidado */
         // if (xoroshiro128p_next() > 0.1f)
         // Uso (>=) para ahorrarme la negacion
-        __m256 if_rand  = _mm256_set_ps(random3(),random3(),random3(),random3(),random3(),random3(),random3(),random3());
+        __m256 if_rand  = xoroshiro128pVec_next();
         if_rand  = _mm256_cmp_ps(if_rand, _mm256_set1_ps(0.1f), _CMP_LE_OQ); 
 
         // Pasan a estar muertos (FALSE) los que sacaron un random inferior a 0.1f

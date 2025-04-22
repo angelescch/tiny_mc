@@ -23,6 +23,6 @@
 #endif
 
 #ifndef SEED
-#define SEED (19) // random seed
+#define SEED {19, 13, 11, 17, 23, 71, 91, 37} // random seed
 #endif
 

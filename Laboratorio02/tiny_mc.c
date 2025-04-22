@@ -7,7 +7,7 @@
 
 #define _XOPEN_SOURCE 500 // M_PI
 
-#include "xoroshiro128p.h"
+#include "xoroshiro128pVec.h"
 #include "params.h"
 #include "photon.h"
 #include "wtime.h"
@@ -25,6 +25,7 @@ char t3[] = "CPU version, adapted for PEAGPGPU by Gustavo Castellano"
 // global state, heat and heat square in each shell
 static float heat[SHELLS];
 static float heat2[SHELLS];
+static unsigned int SEED_[8] = SEED;
 
 /***
  * Main matter
@@ -39,7 +40,7 @@ int main(void)
     printf("# Photons    = %8d\n#\n", PHOTONS);
 
     // configure RNG
-    xoroshiro128p_seed(SEED);
+    xoroshiro128pVec_seed(SEED_);
 
     // start timer
     double start = wtime();

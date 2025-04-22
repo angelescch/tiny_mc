@@ -9,7 +9,7 @@ CG_LDFLAGS = -lm -lglfw -lGL -lGLEW
 TARGETS = headless head
 
 # Files
-C_SOURCES = wtime.c xoroshiro128p.c photon.c
+C_SOURCES = wtime.c xoroshiro128pVec.c photon.c
 C_OBJS = $(patsubst %.c, %.o, $(C_SOURCES))
 
 headless: tiny_mc.o $(C_OBJS)
