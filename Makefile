@@ -1,8 +1,8 @@
 # Compilers
-CC = gcc
+CC = icx
 
 # Flags
-CFLAGS = -g -std=c11 -Wall -Wextra -O1 -march=native -funroll-all-loops -ffast-math -ftree-vectorize -fopenmp
+CFLAGS =  -std=c11 -Wall -Wextra -O3 -march=native -funroll-loops -ffast-math -ftree-vectorize -qopenmp -mavx2
 TINY_LDFLAGS = -lm -mavx2
 CG_LDFLAGS = -lm -lglfw -lGL -lGLEW -mavx2
 
