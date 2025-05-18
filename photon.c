@@ -6,19 +6,19 @@
 
 #include <stdio.h>
 
+#define NUM
+
+float* t_heats[8];
+float* t_heats_squared[8];
+
 /* Ahora se realizara el calculo de a 8 */
 void photon(float* heats, float* heats_squared)
 {
     __m256 albedo = _mm256_set1_ps(MU_S / (MU_S + MU_A));
     __m256 shells_per_mfp = _mm256_set1_ps(1e4 / MICRONS_PER_SHELL / (MU_A + MU_S));
 
-    int num_threads = 8;
-    printf("num: %d\n", num_threads);
-
-    
-    float t_heats[num_threads * SHELLS];
-    float t_heats_squared[num_threads * SHELLS];
-
+    int num_threads = 4;
+   
     int tid;
 
     #pragma omp parallel default(none) shared(num_threads, shells_per_mfp, albedo, t_heats, t_heats_squared) private(tid)
@@ -35,11 +35,10 @@ void photon(float* heats, float* heats_squared)
         int max_photons_per_thread = PHOTONS / num_threads;
         tid = omp_get_thread_num();
 
-        float* p_heats         = t_heats + SHELLS * tid;
-        float* p_heats_squared = t_heats_squared + SHELLS * tid;
+        float* p_heats         = calloc(sizeof(float), SHELLS);
+        float* p_heats_squared = calloc(sizeof(float), SHELLS);
 
-        #pragma omp for
-        for(int counter = 0;counter < max_photons_per_thread; counter++) {
+        for(int counter = 0;counter < max_photons_per_thread;) {
             __m256 t = _mm256_sub_ps(_mm256_set1_ps(0.0f), calculate_log_simd(next_random())); /* move */
 
             x = _mm256_add_ps(x, _mm256_mul_ps(t, u));
@@ -108,20 +107,22 @@ void photon(float* heats, float* heats_squared)
             // __m256 survival_mask = _mm256_andnot_ps(xi1, mask); // entraron al if vivos y sobrevivieron
             // weight = _mm256_blendv_ps(weight, _mm256_div_ps(weight, _mm256_set1_ps(0.1f)), survival_mask);
         }
+        t_heats_squared[tid] = p_heats_squared;
+        t_heats[tid] = p_heats;
     }
 
     printf("num: %d\n", num_threads);
 
-    for (int t = 0; t < num_threads; ++t){
-        for (int s = 0; s < SHELLS; s++){
-            printf("%d %d\n",t, s);
-            heats[s] = t_heats[s+SHELLS*t];
+    for (int h = 0 ; h < num_threads; h++){
+        for (int s = 0 ; s < SHELLS; s++){
+            heats[s] += t_heats[h][s];
         }
     }
-    
-    for (int t = 0; t < num_threads; t++)
-        for (int s = 0; s < SHELLS; s++)
-            heats_squared[s] += t_heats_squared[s+SHELLS*t];
 
-        
+    
+    for (int h = 0 ; h < num_threads; h++){
+        for (int s = 0 ; s < SHELLS; s++){
+            heats_squared[s] += t_heats_squared[h][s];
+        }
+    }
 }
