@@ -6,8 +6,7 @@
 #define M_PI 3.14159265358979323846f
 #endif
 
-/* Ahora se realizara el calculo de a 8 */
-void photon(float* heats, float* heats_squared)
+void photon(int target, float* heats, float* heats_squared)
 {
     __m256 albedo = _mm256_set1_ps(MU_S / (MU_S + MU_A));
     __m256 shells_per_mfp = _mm256_set1_ps(1e4 / MICRONS_PER_SHELL / (MU_A + MU_S));
@@ -22,7 +21,7 @@ void photon(float* heats, float* heats_squared)
     __m256 weight = _mm256_set1_ps(1.0f);
 
     int counter = 0;
-    while(counter < PHOTONS) {
+    while(counter < target) {
         __m256 t = _mm256_sub_ps(_mm256_set1_ps(0.0f), calculate_log_simd(next_random())); /* move */
 
         x = _mm256_add_ps(x, _mm256_mul_ps(t, u));

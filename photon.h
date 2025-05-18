@@ -1,3 +1,3 @@
 #pragma once
 
-void photon(float *heats, float *heats_squared);
+void photon(int target, float *heats, float *heats_squared);

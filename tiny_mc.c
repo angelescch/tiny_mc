@@ -15,6 +15,7 @@
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
+#include <omp.h>
 
 char t1[] = "Tiny Monte Carlo by Scott Prahl (http://omlc.ogi.edu)";
 char t2[] = "1 W Point Source Heating in Infinite Isotropic Scattering Medium";
@@ -24,6 +25,7 @@ char t3[] = "CPU version, adapted for PEAGPGPU by Gustavo Castellano"
 // global state, heat and heat square in each shell
 static float heat[SHELLS];
 static float heat2[SHELLS];
+#pragma omp threadprivate(heat,heat2)
 
 /***
  * Main matter
@@ -37,16 +39,24 @@ int main(void)
     printf("# Absorption = %8.3f/cm\n", MU_A);
     printf("# Photons    = %8d\n#\n", PHOTONS);
 
-    // configure RNG
-    init_random(5445743);
+    int nthreads = omp_get_max_threads();
+    printf("maxxxxxx threads: %d\n",nthreads);
+    int base = (PHOTONS + nthreads - 1) / nthreads;
 
     // start timer
     double start = wtime();
 
-    // simulation
-    //for (unsigned int i = 0; i < PHOTONS/8; ++i) {
-        photon(heat, heat2);
-    //}
+    float heat_reduction[SHELLS] = {0.0f};
+    float heat2_reduction[SHELLS] = {0.0f};
+
+    // configure RNG
+    #pragma omp parallel reduction(+ : heat_reduction[:SHELLS], heat2_reduction[:SHELLS])
+    {
+        int tid = omp_get_thread_num();
+        init_random(0xA511E9B3 ^ (tid * 0x45D9F3B));
+
+        photon(base, heat_reduction, heat2_reduction);
+    }
 
     // stop timer
     double end = wtime();
@@ -61,10 +71,10 @@ int main(void)
     float t = 4.0f * M_PI * powf(MICRONS_PER_SHELL, 3.0f) * PHOTONS / 1e12;
     for (unsigned int i = 0; i < SHELLS - 1; ++i) {
         printf("%6.0f\t%12.5f\t%12.5f\n", i * (float)MICRONS_PER_SHELL,
-               heat[i] / t / (i * i + i + 1.0 / 3.0),
-               sqrt(heat2[i] - heat[i] * heat[i] / PHOTONS) / t / (i * i + i + 1.0f / 3.0f));
+               heat_reduction[i] / t / (i * i + i + 1.0 / 3.0),
+               sqrt(heat2_reduction[i] - heat_reduction[i] * heat_reduction[i] / PHOTONS) / t / (i * i + i + 1.0f / 3.0f));
     }
-    printf("# extra\t%12.5f\n", heat[SHELLS - 1] / PHOTONS);
+    printf("# extra\t%12.5f\n", heat_reduction[SHELLS - 1] / PHOTONS);
 
     return 0;
 }

@@ -1,8 +1,10 @@
 #include "xoroshiro128p.h"
+#include <omp.h>
 
 #define UINT32_MAX_INV (1.0f / (float)UINT32_MAX)
 
 static __m256i s0, s1, s2, s3;
+#pragma omp threadprivate(s0, s1, s2, s3)
 
 static inline __m256i rotl32_avx(__m256i x, int k) {
     return _mm256_or_si256(_mm256_slli_epi32(x, k),
