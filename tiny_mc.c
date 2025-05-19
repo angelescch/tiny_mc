@@ -22,11 +22,6 @@ char t2[] = "1 W Point Source Heating in Infinite Isotropic Scattering Medium";
 char t3[] = "CPU version, adapted for PEAGPGPU by Gustavo Castellano"
             " and Nicolas Wolovick";
 
-// global state, heat and heat square in each shell
-static float heat[SHELLS];
-static float heat2[SHELLS];
-#pragma omp threadprivate(heat,heat2)
-
 /***
  * Main matter
  ***/
@@ -43,11 +38,11 @@ int main(void)
     printf("maxxxxxx threads: %d\n",nthreads);
     int base = (PHOTONS + nthreads - 1) / nthreads;
 
-    // start timer
-    double start = wtime();
-
     float heat_reduction[SHELLS] = {0.0f};
     float heat2_reduction[SHELLS] = {0.0f};
+
+    // start timer
+    double start = wtime();
 
     // configure RNG
     #pragma omp parallel reduction(+ : heat_reduction[:SHELLS], heat2_reduction[:SHELLS])
