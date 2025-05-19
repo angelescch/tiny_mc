@@ -38,14 +38,6 @@ void photon(int target, float* heats, float* heats_squared)
         __m256 res = _mm256_mul_ps(_mm256_sub_ps(_mm256_set1_ps(1.0f), albedo), weight);
         __m256 res2 = _mm256_mul_ps(res,res);
 
-        for (int i = 0; i < 8; ++i) {
-            int idx = ((int*)&shell)[i];
-            float r = ((float*)&res)[i];
-            float r2 = ((float*)&res2)[i];
-            heats_squared[idx] += r2;
-            heats[idx] += r;
-        }
-
         weight = _mm256_mul_ps(weight, albedo);
 
         __m256 if_mask = _mm256_cmp_ps(weight, _mm256_set1_ps(0.001f), _CMP_LT_OQ);
@@ -107,5 +99,12 @@ void photon(int target, float* heats, float* heats_squared)
         // live = _mm256_andnot_ps(death_mask, live); // vivos de antes y vivos del rulette
         // __m256 survival_mask = _mm256_andnot_ps(xi1, mask); // entraron al if vivos y sobrevivieron
         // weight = _mm256_blendv_ps(weight, _mm256_div_ps(weight, _mm256_set1_ps(0.1f)), survival_mask);
+        for (int i = 0; i < 8; ++i) {
+            int idx = ((int*)&shell)[i];
+            float r = ((float*)&res)[i];
+            float r2 = ((float*)&res2)[i];
+            heats_squared[idx] += r2;
+            heats[idx] += r;
+        }
     }
 }
