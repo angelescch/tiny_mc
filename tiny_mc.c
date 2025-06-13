@@ -6,6 +6,8 @@
  */
 
 #define _XOPEN_SOURCE 500 // M_PI
+#define CHUNK_SIZE 64
+#define TARGET (PHOTONS + CHUNK_SIZE - 1) / CHUNK_SIZE
 
 #include "xoroshiro128p.h"
 #include "params.h"
@@ -41,16 +43,21 @@ int main(void)
     float heat_reduction[SHELLS] = {0.0f};
     float heat2_reduction[SHELLS] = {0.0f};
 
+    #pragma omp parallel
+    {
+        int tid = omp_get_thread_num();
+        init_random(0xA511E9B3 ^ (tid * 0x45D9F3B));
+    }
+
     // start timer
     double start = wtime();
 
     // configure RNG
-    #pragma omp parallel reduction(+ : heat_reduction[:SHELLS], heat2_reduction[:SHELLS])
+    #pragma omp parallel for schedule(dynamic) reduction(+ : heat_reduction[:SHELLS], heat2_reduction[:SHELLS])
     {
-        int tid = omp_get_thread_num();
-        init_random(0xA511E9B3 ^ (tid * 0x45D9F3B));
-
-        photon(base, heat_reduction, heat2_reduction);
+        for(int j=0; j < TARGET; j++){
+            photon(CHUNK_SIZE, heat_reduction, heat2_reduction);
+        }
     }
 
     // stop timer

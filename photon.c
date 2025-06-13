@@ -57,8 +57,8 @@ void photon(int target, float* restrict heats, float* restrict heats_squared)
         __m256 theta = _mm256_mul_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), _mm256_set1_ps(M_PI)), next_random());
 
         __m256 r = _mm256_sqrt_ps(_mm256_sub_ps(_mm256_set1_ps(1.0f),_mm256_mul_ps(new_u,new_u)));
-        __m256 new_v = _mm256_mul_ps(r,_mm256_cos_ps(theta));
-        __m256 new_w = _mm256_mul_ps(r,_mm256_sin_ps(theta));
+        __m256 new_v = _mm256_mul_ps(r,fast_cos_ps(theta));
+        __m256 new_w = _mm256_mul_ps(r,fast_sin_ps(theta));
         #else
         __m256 xi1 = _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), next_random()), _mm256_set1_ps(1.0f));
         __m256 xi2 = _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), next_random()), _mm256_set1_ps(1.0f));
