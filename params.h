@@ -26,3 +26,10 @@
 #define SEED (19) // random seed
 #endif
 
+#ifndef CANT_BLOQUES
+#define CANT_BLOQUES (1024) // Cantidad de bloques de GPU
+#endif
+
+#ifndef HILOS_X_BLOQUE
+#define HILOS_X_BLOQUE (1024) // Cantidad de hilos por bloques de GPU
+#endif
