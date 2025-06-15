@@ -186,8 +186,6 @@ double wtime(void)
 }
 
 
-#include "wtime.h"
-
 #include <assert.h>
 #include <stdio.h>
 
