@@ -2,14 +2,14 @@
 #include <stdio.h>
 
 // Función rápida para calcular logaritmo en base 2 utilizando AVX2 (SIMD)
-static __m256 calculate_log2_simd(__m256 x) {
+static __m256 fast_log2_ps(__m256 x) {
     // Conjunto de constantes para la aproximación
     const __m256 const1 = _mm256_set1_ps(1.1920928955078125e-7f);
     const __m256 const2 = _mm256_set1_ps(-124.22551499f);
     const __m256 const3 = _mm256_set1_ps(-1.498030302f);
     const __m256 const4 = _mm256_set1_ps(-1.72587999f);
     const __m256 const5 = _mm256_set1_ps(0.3520887068f);
-    
+
     // Extract the mantissa and exponent
     union {
         __m256 f;
@@ -39,11 +39,11 @@ static __m256 calculate_log2_simd(__m256 x) {
 }
 
 // Función para calcular el logaritmo natural utilizando AVX2
-__m256 calculate_log_simd(__m256 x) {
+__m256 fast_log_ps(__m256 x) {
     // Constante ln(2)
     __m256 ln2 = _mm256_set1_ps(0.69314718f);
     // Calcular log2(x) y luego multiplicar por ln(2) para obtener ln(x)
-    return _mm256_mul_ps(ln2, calculate_log2_simd(x));
+    return _mm256_mul_ps(ln2, fast_log2_ps(x));
 }
 
 __m256 fast_sin_ps(__m256 x) {

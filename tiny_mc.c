@@ -38,7 +38,6 @@ int main(void)
 
     int nthreads = omp_get_max_threads();
     printf("maxxxxxx threads: %d\n",nthreads);
-    int base = (PHOTONS + nthreads - 1) / nthreads;
 
     float heat_reduction[SHELLS] = {0.0f};
     float heat2_reduction[SHELLS] = {0.0f};
@@ -52,12 +51,9 @@ int main(void)
     // start timer
     double start = wtime();
 
-    // configure RNG
     #pragma omp parallel for schedule(dynamic) reduction(+ : heat_reduction[:SHELLS], heat2_reduction[:SHELLS])
-    {
-        for(int j=0; j < TARGET; j++){
-            photon(CHUNK_SIZE, heat_reduction, heat2_reduction);
-        }
+    for(int j=0; j < TARGET; j++){
+        photon(CHUNK_SIZE, heat_reduction, heat2_reduction);
     }
 
     // stop timer

@@ -1,6 +1,6 @@
 #include "params.h"
 #include "xoroshiro128p.h"
-#include "log_256.h"
+#include "fast_math256.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846f
@@ -22,7 +22,7 @@ void photon(int target, float* restrict heats, float* restrict heats_squared)
 
     int counter = 0;
     while(counter < target) {
-        __m256 t = _mm256_sub_ps(_mm256_set1_ps(0.0f), calculate_log_simd(next_random())); /* move */
+        __m256 t = _mm256_sub_ps(_mm256_set1_ps(0.0f), fast_log_ps(next_random())); /* move */
 
         x = _mm256_add_ps(x, _mm256_mul_ps(t, u));
         y = _mm256_add_ps(y, _mm256_mul_ps(t, v));
@@ -52,40 +52,47 @@ void photon(int target, float* restrict heats, float* restrict heats_squared)
         y = _mm256_blendv_ps(y, _mm256_set1_ps(0), reset_mask);
         z = _mm256_blendv_ps(z, _mm256_set1_ps(0), reset_mask);
 
-        #ifdef ICX
+        //#ifdef ICX
         __m256 new_u = _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), next_random()), _mm256_set1_ps(1.0f));
         __m256 theta = _mm256_mul_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), _mm256_set1_ps(M_PI)), next_random());
 
         __m256 r = _mm256_sqrt_ps(_mm256_sub_ps(_mm256_set1_ps(1.0f),_mm256_mul_ps(new_u,new_u)));
         __m256 new_v = _mm256_mul_ps(r,fast_cos_ps(theta));
         __m256 new_w = _mm256_mul_ps(r,fast_sin_ps(theta));
-        #else
-        __m256 xi1 = _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), next_random()), _mm256_set1_ps(1.0f));
-        __m256 xi2 = _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), next_random()), _mm256_set1_ps(1.0f));
-        t = _mm256_add_ps(_mm256_mul_ps(xi1, xi1), _mm256_mul_ps(xi2, xi2));
-        __m256 mask = _mm256_cmp_ps(t, _mm256_set1_ps(1.0f), _CMP_GT_OQ);
-        while (_mm256_movemask_ps(mask) != 0) {
-            __m256 new_xi1 = _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), next_random()), _mm256_set1_ps(1.0f));
-            __m256 new_xi2 = _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), next_random()), _mm256_set1_ps(1.0f));
-            xi1 = _mm256_blendv_ps(xi1, new_xi1, mask);
-            xi2 = _mm256_blendv_ps(xi2, new_xi2, mask);
-            t = _mm256_add_ps(_mm256_mul_ps(xi1, xi1), _mm256_mul_ps(xi2, xi2));
-            mask = _mm256_cmp_ps(t, _mm256_set1_ps(1.0f), _CMP_GT_OQ);
-        }
-        __m256 new_u = _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), t), _mm256_set1_ps(1.0f));
-        __m256 sqrt_val = _mm256_sqrt_ps(_mm256_sub_ps(_mm256_set1_ps(1.0f), t));
-        __m256 new_v = _mm256_mul_ps(_mm256_mul_ps(xi1, _mm256_set1_ps(2.0f)), sqrt_val);
-        __m256 new_w = _mm256_mul_ps(_mm256_mul_ps(xi2, _mm256_set1_ps(2.0f)), sqrt_val);
-        #endif
+        // #else
+        // __m256 xi1 = _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), next_random()), _mm256_set1_ps(1.0f));
+        // __m256 xi2 = _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), next_random()), _mm256_set1_ps(1.0f));
+        // t = _mm256_add_ps(_mm256_mul_ps(xi1, xi1), _mm256_mul_ps(xi2, xi2));
+        // __m256 mask = _mm256_cmp_ps(t, _mm256_set1_ps(1.0f), _CMP_GT_OQ);
+        // while (_mm256_movemask_ps(mask) != 0) {
+        //     __m256 new_xi1 = _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), next_random()), _mm256_set1_ps(1.0f));
+        //     __m256 new_xi2 = _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), next_random()), _mm256_set1_ps(1.0f));
+        //     xi1 = _mm256_blendv_ps(xi1, new_xi1, mask);
+        //     xi2 = _mm256_blendv_ps(xi2, new_xi2, mask);
+        //     t = _mm256_add_ps(_mm256_mul_ps(xi1, xi1), _mm256_mul_ps(xi2, xi2));
+        //     mask = _mm256_cmp_ps(t, _mm256_set1_ps(1.0f), _CMP_GT_OQ);
+        // }
+        // __m256 new_u = _mm256_sub_ps(_mm256_mul_ps(_mm256_set1_ps(2.0f), t), _mm256_set1_ps(1.0f));
+        // __m256 sqrt_val = _mm256_sqrt_ps(_mm256_sub_ps(_mm256_set1_ps(1.0f), t));
+        // __m256 new_v = _mm256_mul_ps(_mm256_mul_ps(xi1, _mm256_set1_ps(2.0f)), sqrt_val);
+        // __m256 new_w = _mm256_mul_ps(_mm256_mul_ps(xi2, _mm256_set1_ps(2.0f)), sqrt_val);
+        // #endif
 
-        u = _mm256_blendv_ps(u, new_u, reset_mask);
-        v = _mm256_blendv_ps(v, new_v, reset_mask);
-        w = _mm256_blendv_ps(w, new_w, reset_mask);
+        u = _mm256_blendv_ps(new_u, _mm256_set1_ps(0.0f), reset_mask);
+        v = _mm256_blendv_ps(new_v, _mm256_set1_ps(0.0f), reset_mask);
+        w = _mm256_blendv_ps(new_w, _mm256_set1_ps(1.0f), reset_mask);
 
+        int shell_array[8];
+        float res_array[8];
+        float res2_array[8];
+
+        _mm256_storeu_si256((__m256i*)shell_array, shell);
+        _mm256_storeu_ps(res_array, res);
+        _mm256_storeu_ps(res2_array, res2);
         for (int i = 0; i < 8; ++i) {
-            int idx = ((int*)&shell)[i];
-            float r = ((float*)&res)[i];
-            float r2 = ((float*)&res2)[i];
+            int idx = shell_array[i];
+            float r = res_array[i];
+            float r2 = res2_array[i];
             heats_squared[idx] += r2;
             heats[idx] += r;
         }
