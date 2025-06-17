@@ -102,10 +102,13 @@ __global__ void photon_kernel(float* d_heats, float* d_heats_2, int p, uint32_t 
         weight *= albedo;
 
         u = 2.0f * xoroshiro128p_next(s0, s1, s2, s3) - 1.0f;
-        float theta = 2.0f * M_PI * xoroshiro128p_next(s0, s1, s2, s3);
+        //float theta = 2.0f * M_PI * xoroshiro128p_next(s0, s1, s2, s3);
         float r = sqrtf(1.0f - u * u);
-        v = r * cosf(theta);
-        w = r * sinf(theta);
+
+        float sin_theta, cos_theta;
+        sincospif(2.0f * xoroshiro128p_next(s0, s1, s2, s3), &sin_theta, &cos_theta);
+        v = r * cos_theta;
+        w = r * sin_theta;
 
         if (weight < 0.001f) {
             weight /= 0.1f;
